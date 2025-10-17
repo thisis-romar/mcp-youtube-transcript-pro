@@ -172,12 +172,13 @@ Language: en
 **Output:**
 Plain text transcript (17,917 characters)
 
-### Example 3: Get Timed Transcript
+### Example 3: Get Timed Transcript (JSON)
 
 In Claude Desktop:
 ```
 @youtube-transcript get_timed_transcript
 URL: https://youtu.be/lxRAj1Gijic
+Format: json
 ```
 
 **Output:**
@@ -200,6 +201,137 @@ URL: https://www.youtube.com/watch?v=lxRAj1Gijic
   }
 ]
 ```
+
+## 📤 Choosing Output Formats
+
+The `get_timed_transcript` tool supports 5 formats optimized for different workflows:
+
+### Format Examples
+
+#### 1. SRT (SubRip) - Video Editing
+Perfect for Adobe Premiere, Final Cut Pro, DaVinci Resolve, or any video editor.
+
+```
+@youtube-transcript get_timed_transcript
+URL: https://youtu.be/lxRAj1Gijic
+Format: srt
+```
+
+**Output:**
+```srt
+1
+00:00:00,080 --> 00:00:04,359
+today I'm going to be showing you the best extensions
+
+2
+00:00:04,359 --> 00:00:07,000
+and settings for VS Code in 2025
+```
+
+**Use Case**: Import directly into video editor timeline for subtitles.
+
+#### 2. VTT (WebVTT) - Web Captions
+Standard format for HTML5 `<video>` elements and browsers.
+
+```
+@youtube-transcript get_timed_transcript
+URL: https://youtu.be/lxRAj1Gijic
+Format: vtt
+```
+
+**Output:**
+```vtt
+WEBVTT
+
+00:00:00.080 --> 00:00:04.359
+today I'm going to be showing you the best extensions
+
+00:00:04.359 --> 00:00:07.000
+and settings for VS Code in 2025
+```
+
+**Use Case**: Add captions to website videos, streaming platforms, accessibility features.
+
+#### 3. CSV - Data Analysis
+Spreadsheet format for Excel, Google Sheets, Python pandas, or R.
+
+```
+@youtube-transcript get_timed_transcript
+URL: https://youtu.be/lxRAj1Gijic
+Format: csv
+```
+
+**Output:**
+```csv
+Sequence,Start,End,Duration,Text,Language,Source
+1,00:00:00.080,00:00:04.359,00:00:04.279,"today I'm going to be showing you the best extensions",en,web_extraction
+2,00:00:04.359,00:00:07.000,00:00:02.641,"and settings for VS Code in 2025",en,web_extraction
+```
+
+**Use Case**: Analyze timing patterns, search keywords, generate reports, sentiment analysis.
+
+#### 4. TXT - Plain Text
+Simple text extraction for documentation or reading.
+
+```
+@youtube-transcript get_timed_transcript
+URL: https://youtu.be/lxRAj1Gijic
+Format: txt
+```
+
+**Output:**
+```txt
+today I'm going to be showing you the best extensions and settings for VS Code in 2025
+```
+
+**Use Case**: Documentation, summaries, text search, minimal file size (94% smaller than JSON!).
+
+#### 5. JSON - Programmatic Access
+Structured data for APIs, applications, or custom processing.
+
+```
+@youtube-transcript get_timed_transcript
+URL: https://youtu.be/lxRAj1Gijic
+Format: json
+```
+
+**Output:**
+```json
+[
+  {
+    "start": 0.08,
+    "end": 4.359,
+    "text": "today I'm going to be showing you the best extensions",
+    "lang": "en",
+    "source": "web_extraction"
+  }
+]
+```
+
+**Use Case**: Build applications, integrate with APIs, custom data processing.
+
+### Quick Format Selection Guide
+
+| I Need To... | Use Format |
+|--------------|------------|
+| Add subtitles to my video | `srt` |
+| Embed captions on a website | `vtt` |
+| Analyze data in Excel/Python | `csv` |
+| Extract text only | `txt` |
+| Build an application | `json` |
+
+### Real-World File Sizes
+Based on a 15-minute video with 3,624 transcript segments:
+
+| Format | File Size | Savings |
+|--------|-----------|---------|
+| JSON | 289 KB | baseline |
+| SRT | 144 KB | 50% smaller |
+| VTT | 127 KB | 56% smaller |
+| CSV | 175 KB | 40% smaller |
+| **TXT** | **17.5 KB** | **94% smaller!** |
+
+For detailed format specifications and compatibility information, see **[FORMATS.md](./FORMATS.md)**.
 
 ## Supported URL Formats
 
