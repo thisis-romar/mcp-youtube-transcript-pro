@@ -33,7 +33,7 @@ interface JsonRpcResponse {
 // MCP Server Information
 const SERVER_INFO = {
     name: 'mcp-youtube-transcript-pro',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'MCP server for fetching YouTube video transcripts with metadata',
     tools: [
         {
@@ -182,7 +182,12 @@ async function handleToolsCall(params: any): Promise<any> {
     
     const input: ToolInput = {
         url: args.url,
-        lang: args.lang
+        lang: args.lang,
+        // Optional fields (used by get_timed_transcript)
+        format: args.format,
+        filterEmpty: args.filterEmpty,
+        mergeOverlaps: args.mergeOverlaps,
+        removeSilence: args.removeSilence
     };
     
     // Validate required input

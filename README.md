@@ -553,7 +553,7 @@ See [IMPLEMENTATION_COMPLETE.md](./IMPLEMENTATION_COMPLETE.md) for detailed impl
 ---
 
 **Status**: ✅ Production Ready
-**Last Updated**: October 14, 2025
+**Last Updated**: October 17, 2025
 **Test Video**: https://www.youtube.com/watch?v=lxRAj1Gijic
 
 
@@ -561,3 +561,5 @@ Run the container:
 ```bash
 docker run -i mcp-youtube-transcript-pro
 ```
+
+Note: Version 1.1.0 adds preprocessing options (filterEmpty, mergeOverlaps, removeSilence) and CSV/TXT output formats.
