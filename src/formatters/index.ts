@@ -48,6 +48,70 @@ export interface FormatterOptions {
 }
 
 /**
+ * CSV-specific formatting options
+ */
+export interface CSVFormatOptions {
+    /** 
+     * Timestamp format for Start, End, and Duration columns
+     * - 'seconds': Decimal seconds (e.g., 83.456)
+     * - 'hms': HH:MM:SS without milliseconds (e.g., 00:01:23)
+     * - 'hms-millis': HH:MM:SS.mmm with milliseconds (e.g., 00:01:23.456)
+     * @default 'seconds'
+     */
+    timestampFormat?: 'seconds' | 'hms' | 'hms-millis';
+    
+    /** 
+     * Include BOM (Byte Order Mark) for Excel compatibility
+     * Helps Excel recognize UTF-8 encoding properly
+     * @default true
+     */
+    includeBOM?: boolean;
+    
+    /** 
+     * Include header row with column names
+     * @default true
+     */
+    includeHeader?: boolean;
+}
+
+/**
+ * TXT-specific formatting options
+ */
+export interface TXTFormatOptions {
+    /** 
+     * Text formatting mode
+     * - 'plain': Space-separated text (mimics current get_transcript behavior)
+     * - 'timestamped': Each segment on new line with [HH:MM:SS] timestamp prefix
+     * - 'paragraph': Group segments by time gaps for natural reading flow
+     * @default 'plain'
+     */
+    mode?: 'plain' | 'timestamped' | 'paragraph';
+    
+    /**
+     * Include metadata header with transcript info
+     * Header includes: export time, language, source, segment count, duration
+     * Only applies to 'timestamped' and 'paragraph' modes (not 'plain')
+     * @default false
+     */
+    includeMetadata?: boolean;
+    
+    /**
+     * Time gap threshold (in seconds) for paragraph mode
+     * Segments with gaps larger than this will start new paragraphs
+     * Only applies to 'paragraph' mode
+     * @default 2.0
+     */
+    paragraphGap?: number;
+    
+    /**
+     * Timestamp format for timestamped mode
+     * Only applies to 'timestamped' mode
+     * @default 'hms'
+     */
+    timestampFormat?: 'hms' | 'hms-millis';
+}
+
+/**
  * Base formatter function type
  * Takes transcript segments and returns formatted content
  */
@@ -72,5 +136,5 @@ export * from './timestamp-utils';
 // Export individual formatters (will be implemented)
 export * from './srt-formatter';
 export * from './vtt-formatter';
-// export * from './csv-formatter';
-// export * from './txt-formatter';
+export * from './csv-formatter';
+export * from './txt-formatter';
