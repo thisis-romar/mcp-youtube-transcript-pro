@@ -1,6 +1,6 @@
 {
   "name": "mcp-youtube-transcript-pro",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "A professional MCP server for fetching YouTube transcripts.",
   "main": "dist/index.js",
   "scripts": {
