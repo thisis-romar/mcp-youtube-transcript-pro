@@ -71,7 +71,7 @@ const SERVER_INFO = {
         },
         {
             name: 'get_timed_transcript',
-            description: 'Returns an array of timestamped transcript segments',
+            description: 'Returns timestamped transcript segments in multiple formats (JSON, SRT, VTT, CSV, TXT) with optional preprocessing',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -83,6 +83,27 @@ const SERVER_INFO = {
                         type: 'string',
                         description: 'Language code (default: en)',
                         default: 'en'
+                    },
+                    format: {
+                        type: 'string',
+                        description: "Output format (default: json). Options: 'json' (structured data), 'srt' (SubRip subtitles), 'vtt' (WebVTT captions), 'csv' (spreadsheet), 'txt' (plain text)",
+                        enum: ['json', 'srt', 'vtt', 'csv', 'txt'],
+                        default: 'json'
+                    },
+                    filterEmpty: {
+                        type: 'boolean',
+                        description: 'Remove segments with empty or whitespace-only text (default: false). Useful for cleaning auto-generated captions.',
+                        default: false
+                    },
+                    mergeOverlaps: {
+                        type: 'boolean',
+                        description: 'Merge segments with overlapping timestamps (default: false). Useful for fixing word-level timing issues in auto-generated captions.',
+                        default: false
+                    },
+                    removeSilence: {
+                        type: 'boolean',
+                        description: 'Remove silence markers like [silence], [pause], [Music] (default: false). More aggressive than filterEmpty.',
+                        default: false
                     }
                 },
                 required: ['url']

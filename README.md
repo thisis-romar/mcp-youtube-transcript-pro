@@ -139,16 +139,18 @@ Returns a merged plain text transcript.
 ```
 
 ### 3. get_timed_transcript
-Returns an array of timestamped transcript segments.
+Returns timestamped transcript segments in multiple formats.
 
 **Input**:
 ```json
 {
-  "url": "https://youtu.be/lxRAj1Gijic"
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "lang": "en",
+  "format": "json"
 }
 ```
 
-**Output**:
+**Output** (format: `json`, default):
 ```json
 [
   {
@@ -161,6 +163,15 @@ Returns an array of timestamped transcript segments.
   ...
 ]
 ```
+
+**Supported Formats**:
+- `json` (default): Array of TranscriptSegment objects
+- `srt`: SubRip subtitle format
+- `vtt`: WebVTT web caption format
+- `csv`: Spreadsheet format with 7 columns
+- `txt`: Plain text format
+
+See [Format Support](#-format-support) below for detailed examples.
 
 ### 4. get_video_info
 Returns video metadata including title, channel, duration, and available captions.
@@ -182,6 +193,231 @@ Returns video metadata including title, channel, duration, and available caption
     { "lang": "en", "source": "youtube_api_manual" }
   ]
 }
+```
+
+## 📤 Format Support
+
+The `get_timed_transcript` tool supports 5 output formats optimized for different use cases:
+
+### JSON (default)
+Structured data format, perfect for programmatic processing.
+```json
+[
+  {
+    "start": 0.08,
+    "end": 4.359,
+    "text": "today I'm going to be showing you the best extensions",
+    "lang": "en",
+    "source": "web_extraction"
+  }
+]
+```
+
+### SRT (SubRip)
+Standard subtitle format for video editing software (Adobe Premiere, Final Cut Pro, DaVinci Resolve).
+```srt
+1
+00:00:00,080 --> 00:00:04,359
+today I'm going to be showing you the best extensions
+
+2
+00:00:04,359 --> 00:00:07,000
+and settings for VS Code in 2025
+```
+
+### VTT (WebVTT)
+Web-native caption format for HTML5 video players and browsers.
+```vtt
+WEBVTT
+
+00:00:00.080 --> 00:00:04.359
+today I'm going to be showing you the best extensions
+
+00:00:04.359 --> 00:00:07.000
+and settings for VS Code in 2025
+```
+
+### CSV
+Spreadsheet format for data analysis (Excel, Google Sheets, Python pandas).
+```csv
+Sequence,Start,End,Duration,Text,Language,Source
+1,00:00:00.080,00:00:04.359,00:00:04.279,"today I'm going to be showing you the best extensions",en,web_extraction
+2,00:00:04.359,00:00:07.000,00:00:02.641,"and settings for VS Code in 2025",en,web_extraction
+```
+
+### TXT (Plain Text)
+Human-readable format for documentation or simple text extraction.
+```txt
+today I'm going to be showing you the best extensions and settings for VS Code in 2025
+```
+
+### Usage Example
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "srt"
+}
+```
+
+### Format Comparison
+| Format | File Size* | Best For | MIME Type |
+|--------|-----------|----------|-----------|
+| JSON | 289 KB | Data processing, APIs | `application/json` |
+| SRT | 144 KB | Video editing (Premiere, Final Cut) | `application/x-subrip` |
+| VTT | 127 KB | Web captions, HTML5 video | `text/vtt` |
+| CSV | 175 KB | Spreadsheet analysis, Excel | `text/csv` |
+| TXT | 17.5 KB | Documentation, simple text | `text/plain` |
+
+*Based on 15-minute video with 3,624 transcript segments.
+
+For detailed format specifications, compatibility information, and decision trees, see **[FORMATS.md](./FORMATS.md)**.
+
+## 🔧 Preprocessing Options
+
+The `get_timed_transcript` tool includes optional preprocessing parameters to clean and optimize transcript data before formatting. All options are disabled by default for backward compatibility.
+
+### filterEmpty
+Remove segments with empty or whitespace-only text.
+
+**Use case**: Clean up auto-generated captions that include timing markers for silent periods.
+
+**Example**:
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "filterEmpty": true
+}
+```
+
+**Before** (1,089 segments):
+```json
+[
+  { "start": 0.08, "end": 0.32, "text": "today", ... },
+  { "start": 0.32, "end": 0.56, "text": "", ... },
+  { "start": 0.56, "end": 1.12, "text": "  ", ... },
+  { "start": 1.12, "end": 1.44, "text": "we're", ... }
+]
+```
+
+**After** (987 segments, 102 removed):
+```json
+[
+  { "start": 0.08, "end": 0.32, "text": "today", ... },
+  { "start": 1.12, "end": 1.44, "text": "we're", ... }
+]
+```
+
+### mergeOverlaps
+Merge segments with overlapping timestamps.
+
+**Use case**: Fix word-level timing issues in auto-generated captions where `end[n] > start[n+1]`.
+
+**Example**:
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "mergeOverlaps": true
+}
+```
+
+**Before** (overlapping timestamps):
+```json
+[
+  { "start": 0.08, "end": 1.50, "text": "Hello", ... },
+  { "start": 1.20, "end": 2.50, "text": "world", ... }
+]
+```
+
+**After** (merged):
+```json
+[
+  { "start": 0.08, "end": 2.50, "text": "Hello world", ... }
+]
+```
+
+### removeSilence
+Remove silence and pause markers from transcript.
+
+**Use case**: Create clean reading transcripts without `[silence]`, `[pause]`, `[Music]` markers.
+
+**Example**:
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "removeSilence": true
+}
+```
+
+**Removed patterns** (case-insensitive):
+- `[silence]`
+- `[pause]`
+- `[Music]`
+- Single period: `.`
+- Single dash: `-`
+- Empty/whitespace-only text
+
+**Before**:
+```json
+[
+  { "start": 0.08, "end": 0.32, "text": "Hello", ... },
+  { "start": 0.32, "end": 1.50, "text": "[silence]", ... },
+  { "start": 1.50, "end": 2.80, "text": "[Music]", ... },
+  { "start": 2.80, "end": 3.20, "text": "world", ... }
+]
+```
+
+**After** (2 segments removed):
+```json
+[
+  { "start": 0.08, "end": 0.32, "text": "Hello", ... },
+  { "start": 2.80, "end": 3.20, "text": "world", ... }
+]
+```
+
+### Combining Options
+All three preprocessing options can be used together. They are applied in this order:
+
+1. **removeSilence** - Remove silence/pause markers
+2. **filterEmpty** - Remove empty segments
+3. **mergeOverlaps** - Merge overlapping timestamps
+
+**Example** (all options enabled):
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "filterEmpty": true,
+  "mergeOverlaps": true,
+  "removeSilence": true,
+  "format": "srt"
+}
+```
+
+**Results**:
+- Original: 1,089 segments
+- After removeSilence: 1,012 segments (77 removed)
+- After filterEmpty: 987 segments (25 removed)
+- After mergeOverlaps: 342 segments (645 merged)
+- **Final**: 342 clean, merged segments in SRT format
+
+### TypeScript Usage
+```typescript
+import { get_timed_transcript } from './tools';
+
+// Clean transcript for reading
+const cleanTranscript = await get_timed_transcript({
+  url: 'https://youtu.be/lxRAj1Gijic',
+  filterEmpty: true,
+  removeSilence: true,
+  format: 'txt'
+});
+
+// Optimized subtitle file
+const subtitles = await get_timed_transcript({
+  url: 'https://youtu.be/lxRAj1Gijic',
+  mergeOverlaps: true,
+  filterEmpty: true,
+  format: 'srt'
+});
 ```
 
 ## 🏗️ Architecture
