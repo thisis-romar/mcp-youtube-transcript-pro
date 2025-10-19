@@ -420,6 +420,173 @@ const subtitles = await get_timed_transcript({
 });
 ```
 
+## 📦 Large Response Handling
+
+When working with long videos (1hr+), transcript outputs can exceed 200KB, causing conversation context overflow. MCP YouTube Transcript Pro provides two parameters to handle large responses efficiently.
+
+### outputFile Parameter
+Write transcript content directly to a file instead of returning it in the conversation.
+
+**Use cases**:
+- Videos longer than 1 hour (generates 200KB+ SRT/VTT files)
+- Automation workflows that need file output
+- Avoid conversation context overflow with large transcripts
+- Save formatted transcripts for later use
+
+**Features**:
+- Supports absolute and relative file paths
+- Auto-creates parent directories recursively
+- Returns success message with metadata instead of content
+- Works with all 5 output formats (JSON, SRT, VTT, CSV, TXT)
+
+**Example 1: Relative path**
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "srt",
+  "outputFile": "./transcripts/video.srt"
+}
+```
+
+**Output** (success message):
+```
+✅ Transcript successfully written to file
+
+File: /absolute/path/to/transcripts/video.srt
+Format: SRT
+Size: 143.82 KB
+Segments: 3624
+Duration: 15.39 minutes
+```
+
+**Example 2: Absolute path**
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "vtt",
+  "outputFile": "/home/user/transcripts/output.vtt"
+}
+```
+
+### preview Parameter
+Truncate response content to prevent context overflow while still viewing a snippet.
+
+**Use cases**:
+- Preview large transcripts before deciding to save
+- Show first few minutes of long video transcripts
+- Reduce conversation context usage while maintaining visibility
+- Quick content verification without full download
+
+**Features**:
+- `preview: true` - Use default 5000 character limit
+- `preview: 1000` - Custom character limit (any positive number)
+- Format-specific truncation:
+  - **JSON**: Returns structured preview object with metadata
+  - **Text formats**: Returns truncated string with omission message
+
+**Example 1: Default preview (5000 chars)**
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "srt",
+  "preview": true
+}
+```
+
+**Output** (truncated SRT):
+```
+1
+00:00:00,080 --> 00:00:00,320
+today
+
+2
+00:00:00,320 --> 00:00:00,600
+we're
+...
+
+... [Preview truncated, 138,765 more characters omitted] ...
+```
+
+**Example 2: Custom preview limit**
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "json",
+  "preview": 1000
+}
+```
+
+**Output** (structured JSON preview):
+```json
+{
+  "preview": true,
+  "truncatedAt": 1000,
+  "segmentsShown": 12,
+  "totalSegments": 3624,
+  "segmentsOmitted": 3612,
+  "segments": [
+    { "start": 0.08, "end": 0.32, "text": "today", ... },
+    ...
+  ],
+  "message": "Preview truncated at 1,000 characters. 3,612 segments omitted."
+}
+```
+
+### Combining outputFile + preview
+Get the best of both worlds: full content in file + preview in conversation.
+
+**Use case**: Save complete transcript to file while viewing a preview snippet to verify content.
+
+**Example**:
+```json
+{
+  "url": "https://youtu.be/lxRAj1Gijic",
+  "format": "srt",
+  "outputFile": "./transcripts/full.srt",
+  "preview": true
+}
+```
+
+**Output** (combined message):
+```
+✅ Transcript successfully written to file
+
+File: /absolute/path/to/transcripts/full.srt
+Format: SRT
+Size: 143.82 KB
+Segments: 3624
+Duration: 15.39 minutes
+
+--- CONTENT PREVIEW ---
+
+1
+00:00:00,080 --> 00:00:00,320
+today
+
+2
+00:00:00,320 --> 00:00:00,600
+we're
+...
+
+... [Preview truncated, 138,765 more characters omitted] ...
+```
+
+**Result**:
+- ✅ Full 143.82 KB transcript saved to `./transcripts/full.srt`
+- ✅ 5 KB preview displayed in conversation
+- ✅ No context overflow
+
+### Choosing the Right Approach
+
+| Scenario | Recommended Parameters | Result |
+|----------|----------------------|--------|
+| Short video (<10 min) | Default (no extra params) | Full content in conversation |
+| Medium video (10-30 min) | `preview: true` | Truncated preview in conversation |
+| Long video (30-60 min) | `outputFile: "./file.srt"` | File saved, metadata in conversation |
+| Very long video (1hr+) | Both: `outputFile` + `preview` | File saved + preview in conversation |
+| Automation workflow | `outputFile: "./file.srt"` | File output for processing |
+| Quick verification | `preview: 500` | Short snippet (500 chars) |
+
 ## 🏗️ Architecture
 
 ```

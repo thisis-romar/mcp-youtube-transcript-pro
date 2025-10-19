@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-18
+
+### Added
+- **Large Response Handling** for `get_timed_transcript` tool:
+  - `outputFile` parameter: Write transcript content directly to file
+    * Supports absolute and relative file paths
+    * Auto-creates parent directories recursively  
+    * Returns success message with metadata instead of large content
+    * Prevents conversation context overflow with 200KB+ files
+  - `preview` parameter: Truncate response content to prevent context overflow
+    * Boolean `true` = default 5000 character limit
+    * Number = custom character limit (any positive number)
+    * JSON format returns structured preview object with metadata
+    * Text formats return truncated string with omission message
+    * Works independently or combined with `outputFile`
+- Comprehensive large response handling documentation in README.md
+- Test 6: outputFile parameter tests (all 5 formats + error cases)
+- Test 7: preview parameter tests (boolean, number, combined with outputFile)
+- Large Response Handling decision table for choosing the right approach
+
+### Changed
+- Refactored `get_timed_transcript` to support file writing and preview truncation
+  * Removed early return from outputFile handler to enable parameter combination
+  * Added format-specific preview logic (JSON vs text formats)
+  * Single return statement at end of function for cleaner control flow
+- Updated MCP tool schema to include `outputFile` and `preview` parameters
+- Enhanced test suite: 7 test suites covering all functionality
+
+### Technical Details
+- **100% backward compatible** - existing code works without changes
+- Both parameters are **optional** and can be used independently or together
+- Format-specific preview truncation:
+  * JSON: Structured object with segmentsShown, totalSegments, segmentsOmitted
+  * Text formats: Truncated string with "... [Preview truncated, N more characters omitted] ..." message
+- File writing uses Node.js fs/promises with UTF-8 encoding
+- Parent directory creation uses `{recursive: true}` for safe path handling
+
+### Use Cases
+- **outputFile only**: Save large transcripts (1hr+ videos) to file, avoid context overflow
+- **preview only**: View snippet of transcript content before deciding to save  
+- **Both combined**: Save full content to file + preview in conversation (best of both worlds)
+- **Automation workflows**: Direct file output for processing pipelines
+- **Quick verification**: Short previews (e.g., `preview: 500`) for content validation
+
+### Bug Fixes
+- Fixed empty string validation for `outputFile` parameter (now checks `undefined` instead of falsy)
+- Improved error messages for file write failures (includes file path and reason)
+
 ## [1.1.0] - 2025-10-17
 
 ### Added
