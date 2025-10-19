@@ -1,3 +1,5 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { getYouTubeTranscript } from './adapters/web_extraction';
 import { getVideoInfo as getYouTubeVideoInfo, listCaptionTracks } from './adapters/youtube_api';
 import { ToolInput, TranscriptSegment, VideoInfo, CaptionTrack } from './types';
@@ -87,29 +89,80 @@ export async function get_timed_transcript(input: ToolInput): Promise<Transcript
             segments = mergeOverlappingSegments(segments);
         }
         
-        // Return raw segments for JSON format (default, backward compatible)
+        // Format the content
+        let formattedContent: string | TranscriptSegment[];
+        
         if (format === 'json') {
-            return segments;
+            // Return raw segments for JSON format (default, backward compatible)
+            formattedContent = segments;
+        } else {
+            // Apply formatters for other formats
+            try {
+                switch (format) {
+                    case 'srt':
+                        formattedContent = formatAsSRT(segments);
+                        break;
+                    case 'vtt':
+                        formattedContent = formatAsVTT(segments);
+                        break;
+                    case 'csv':
+                        formattedContent = formatAsCSV(segments);
+                        break;
+                    case 'txt':
+                        formattedContent = formatAsTXT(segments);
+                        break;
+                    default:
+                        throw new Error(`Invalid format: '${format}'. Supported formats: json, srt, vtt, csv, txt`);
+                }
+            } catch (formatError) {
+                const err = formatError as Error;
+                throw new Error(`Failed to format transcript as ${format}: ${err.message}`);
+            }
         }
         
-        // Apply formatters for other formats
-        try {
-            switch (format) {
-                case 'srt':
-                    return formatAsSRT(segments);
-                case 'vtt':
-                    return formatAsVTT(segments);
-                case 'csv':
-                    return formatAsCSV(segments);
-                case 'txt':
-                    return formatAsTXT(segments);
-                default:
-                    throw new Error(`Invalid format: '${format}'. Supported formats: json, srt, vtt, csv, txt`);
+        // Handle outputFile parameter
+        if (input.outputFile !== undefined) {
+            try {
+                // Validate outputFile is not empty
+                if (typeof input.outputFile !== 'string' || !input.outputFile.trim()) {
+                    throw new Error('outputFile parameter cannot be an empty string');
+                }
+                
+                // Resolve the file path (handles relative and absolute paths)
+                const resolvedPath = path.resolve(input.outputFile);
+                
+                // Ensure parent directory exists (create recursively if needed)
+                const parentDir = path.dirname(resolvedPath);
+                await fs.mkdir(parentDir, { recursive: true });
+                
+                // Write content to file
+                const contentToWrite = typeof formattedContent === 'string' 
+                    ? formattedContent 
+                    : JSON.stringify(formattedContent, null, 2);
+                
+                await fs.writeFile(resolvedPath, contentToWrite, 'utf-8');
+                
+                // Calculate file size
+                const stats = await fs.stat(resolvedPath);
+                const fileSizeKB = (stats.size / 1024).toFixed(2);
+                
+                // Return success message with metadata
+                return `✅ Transcript successfully written to file
+
+File: ${resolvedPath}
+Format: ${format.toUpperCase()}
+Size: ${fileSizeKB} KB
+Segments: ${segments.length}
+Duration: ${segments.length > 0 ? (segments[segments.length - 1].end / 60).toFixed(2) : 0} minutes`;
+                
+            } catch (fileError) {
+                const err = fileError as Error;
+                throw new Error(`Failed to write output file: ${err.message}`);
             }
-        } catch (formatError) {
-            const err = formatError as Error;
-            throw new Error(`Failed to format transcript as ${format}: ${err.message}`);
         }
+        
+        // Return formatted content directly (default behavior)
+        return formattedContent;
     } catch (error) {
         const err = error as Error;
         throw new Error(`Failed to get transcript: ${err.message}`);

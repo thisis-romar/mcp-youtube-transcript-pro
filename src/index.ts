@@ -104,6 +104,10 @@ const SERVER_INFO = {
                         type: 'boolean',
                         description: 'Remove silence markers like [silence], [pause], [Music] (default: false). More aggressive than filterEmpty.',
                         default: false
+                    },
+                    outputFile: {
+                        type: 'string',
+                        description: 'Optional file path to write formatted output. If provided, writes content to file and returns success message instead of content. Supports absolute and relative paths. Parent directories are created automatically. Prevents conversation context overflow with large transcript files (200KB+).'
                     }
                 },
                 required: ['url']
@@ -187,7 +191,8 @@ async function handleToolsCall(params: any): Promise<any> {
         format: args.format,
         filterEmpty: args.filterEmpty,
         mergeOverlaps: args.mergeOverlaps,
-        removeSilence: args.removeSilence
+        removeSilence: args.removeSilence,
+        outputFile: args.outputFile
     };
     
     // Validate required input

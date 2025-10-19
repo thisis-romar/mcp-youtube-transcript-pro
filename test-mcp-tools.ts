@@ -243,11 +243,211 @@ async function runTests() {
         
         console.log('\n✅ All format tests passed\n');
         
+        // Test 6: outputFile Parameter Tests
+        console.log('Test 6: outputFile Parameter Tests');
+        console.log('-'.repeat(50));
+        
+        // Import fs for file verification and cleanup
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        
+        // Test 6.1: outputFile Success Cases
+        console.log('\n6.1: outputFile Success Cases (All Formats)');
+        
+        const outputDir = './test-output';
+        const testFiles: string[] = [];
+        
+        try {
+            // Ensure clean test environment
+            try {
+                await fs.rm(outputDir, { recursive: true, force: true });
+            } catch (e) {
+                // Directory doesn't exist, that's fine
+            }
+            
+            // Test SRT format
+            console.log('  Testing SRT format...');
+            const srtPath = `${outputDir}/test.srt`;
+            testFiles.push(srtPath);
+            const srtResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'srt',
+                outputFile: srtPath
+            });
+            
+            // Verify result is a success message, not content
+            if (typeof srtResult !== 'string' || !srtResult.includes('successfully written')) {
+                throw new Error('outputFile should return success message');
+            }
+            
+            // Verify file exists and has content
+            const srtStats = await fs.stat(srtPath);
+            const srtContent = await fs.readFile(srtPath, 'utf-8');
+            
+            console.log(`    ✓ File created: ${srtPath}`);
+            console.log(`    ✓ File size: ${(srtStats.size / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Content starts with: "${srtContent.substring(0, 50)}..."`);
+            console.log(`    ✓ Success message: "${srtResult.substring(0, 80)}..."`);
+            
+            // Test VTT format
+            console.log('  Testing VTT format...');
+            const vttPath = `${outputDir}/test.vtt`;
+            testFiles.push(vttPath);
+            const vttResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'vtt',
+                outputFile: vttPath
+            });
+            
+            const vttStats = await fs.stat(vttPath);
+            const vttContent = await fs.readFile(vttPath, 'utf-8');
+            
+            console.log(`    ✓ File created: ${vttPath}`);
+            console.log(`    ✓ File size: ${(vttStats.size / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Content starts with: "${vttContent.substring(0, 50)}..."`);
+            
+            // Test CSV format
+            console.log('  Testing CSV format...');
+            const csvPath = `${outputDir}/test.csv`;
+            testFiles.push(csvPath);
+            const csvResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'csv',
+                outputFile: csvPath
+            });
+            
+            const csvStats = await fs.stat(csvPath);
+            const csvContent = await fs.readFile(csvPath, 'utf-8');
+            
+            console.log(`    ✓ File created: ${csvPath}`);
+            console.log(`    ✓ File size: ${(csvStats.size / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Content starts with: "${csvContent.substring(0, 50)}..."`);
+            
+            // Test TXT format
+            console.log('  Testing TXT format...');
+            const txtPath = `${outputDir}/test.txt`;
+            testFiles.push(txtPath);
+            const txtResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'txt',
+                outputFile: txtPath
+            });
+            
+            const txtStats = await fs.stat(txtPath);
+            const txtContent = await fs.readFile(txtPath, 'utf-8');
+            
+            console.log(`    ✓ File created: ${txtPath}`);
+            console.log(`    ✓ File size: ${(txtStats.size / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Content starts with: "${txtContent.substring(0, 50)}..."`);
+            
+            // Test JSON format
+            console.log('  Testing JSON format...');
+            const jsonPath = `${outputDir}/test.json`;
+            testFiles.push(jsonPath);
+            const jsonFileResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'json',
+                outputFile: jsonPath
+            });
+            
+            const jsonStats = await fs.stat(jsonPath);
+            const jsonContent = await fs.readFile(jsonPath, 'utf-8');
+            const parsedJson = JSON.parse(jsonContent);
+            
+            console.log(`    ✓ File created: ${jsonPath}`);
+            console.log(`    ✓ File size: ${(jsonStats.size / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Valid JSON with ${parsedJson.length} segments`);
+            
+            // Test absolute path
+            console.log('  Testing absolute path...');
+            const absolutePath = path.resolve(outputDir, 'test-absolute.srt');
+            testFiles.push(absolutePath);
+            const absoluteResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'srt',
+                outputFile: absolutePath
+            });
+            
+            await fs.stat(absolutePath); // Verify exists
+            console.log(`    ✓ Absolute path works: ${absolutePath}`);
+            
+            console.log('\n  ✅ All outputFile success tests passed');
+            
+        } finally {
+            // Cleanup test files
+            console.log('\n  Cleaning up test files...');
+            for (const file of testFiles) {
+                try {
+                    await fs.unlink(file);
+                    console.log(`    ✓ Removed: ${file}`);
+                } catch (e) {
+                    console.log(`    ⚠ Could not remove: ${file}`);
+                }
+            }
+            
+            // Remove test directory
+            try {
+                await fs.rmdir(outputDir);
+                console.log(`    ✓ Removed directory: ${outputDir}`);
+            } catch (e) {
+                console.log(`    ⚠ Could not remove directory: ${outputDir}`);
+            }
+        }
+        
+        // Test 6.2: outputFile Error Cases
+        console.log('\n6.2: outputFile Error Cases');
+        
+        // Test empty string validation
+        console.log('  Testing empty string validation...');
+        try {
+            await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'srt',
+                outputFile: ''
+            });
+            throw new Error('Should have thrown error for empty outputFile');
+        } catch (error) {
+            const err = error as Error;
+            if (err.message.includes('outputFile parameter cannot be an empty string')) {
+                console.log(`    ✓ Empty string correctly rejected`);
+                console.log(`    ✓ Error message: "${err.message}"`);
+            } else {
+                throw error;
+            }
+        }
+        
+        // Test that parent directories are auto-created
+        console.log('  Testing auto-creation of parent directories...');
+        const deepPath = './test-output-deep/nested/path/test.srt';
+        try {
+            const deepResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'srt',
+                outputFile: deepPath
+            });
+            
+            // Verify file exists
+            await fs.stat(deepPath);
+            console.log(`    ✓ Deep nested path created successfully`);
+            console.log(`    ✓ Path: ${deepPath}`);
+            
+            // Cleanup
+            await fs.rm('./test-output-deep', { recursive: true, force: true });
+            console.log(`    ✓ Cleanup completed`);
+        } catch (error) {
+            console.error(`    ❌ Failed to create nested directories:`, error);
+            throw error;
+        }
+        
+        console.log('\n  ✅ All outputFile error handling tests passed');
+        console.log('\n✅ All outputFile tests passed\n');
+        
         // Summary
         console.log('='.repeat(50));
         console.log('✅ All tests passed successfully!');
         console.log('   - 4 core tools validated');
         console.log('   - 5 output formats tested (JSON, SRT, VTT, CSV, TXT)');
+        console.log('   - outputFile parameter tested (all formats + error cases)');
         console.log('   - Error handling verified');
         console.log('   - Backward compatibility confirmed');
         console.log('='.repeat(50));

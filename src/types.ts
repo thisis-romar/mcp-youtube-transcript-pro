@@ -94,6 +94,41 @@ export interface ToolInput {
      * @default false
      */
     removeSilence?: boolean;
+    
+    /**
+     * Optional file path to write formatted transcript content
+     * 
+     * When provided, the tool writes the formatted output directly to the specified
+     * file and returns a success message with metadata instead of the large content
+     * string. This prevents conversation context overflow with large transcript files
+     * (200KB+ SRT/VTT files).
+     * 
+     * Supports:
+     * - **Absolute paths**: `/home/user/transcript.srt` or `C:\Users\user\transcript.srt`
+     * - **Relative paths**: `./output.srt` or `transcripts/output.vtt`
+     * - **Auto-creation**: Parent directories are created automatically if they don't exist
+     * 
+     * Returns:
+     * - Success message with metadata: format, file size, segment count, file path
+     * - Error message if write fails (permissions, disk space, invalid path)
+     * 
+     * Use cases:
+     * - Avoid context overflow with large videos (1hr+ = 200KB+ files)
+     * - Direct file output for automation workflows
+     * - Save formatted transcripts without displaying in conversation
+     * 
+     * @example
+     * ```typescript
+     * // Relative path
+     * { url: 'video-id', format: 'srt', outputFile: './transcript.srt' }
+     * 
+     * // Absolute path
+     * { url: 'video-id', format: 'vtt', outputFile: '/path/to/output.vtt' }
+     * ```
+     * 
+     * @default undefined (returns content directly)
+     */
+    outputFile?: string;
 }
 
 export interface TranscriptSegment {
