@@ -108,6 +108,13 @@ const SERVER_INFO = {
                     outputFile: {
                         type: 'string',
                         description: 'Optional file path to write formatted output. If provided, writes content to file and returns success message instead of content. Supports absolute and relative paths. Parent directories are created automatically. Prevents conversation context overflow with large transcript files (200KB+).'
+                    },
+                    preview: {
+                        oneOf: [
+                            { type: 'boolean' },
+                            { type: 'number', minimum: 1 }
+                        ],
+                        description: 'Truncate response to prevent context overflow. Use true for default 5000 character limit, or specify custom character limit. For JSON format, returns structured preview object. For text formats, returns truncated string with omission message. Works independently or combined with outputFile (file gets full content, conversation gets preview).'
                     }
                 },
                 required: ['url']
@@ -192,7 +199,8 @@ async function handleToolsCall(params: any): Promise<any> {
         filterEmpty: args.filterEmpty,
         mergeOverlaps: args.mergeOverlaps,
         removeSilence: args.removeSilence,
-        outputFile: args.outputFile
+        outputFile: args.outputFile,
+        preview: args.preview
     };
     
     // Validate required input

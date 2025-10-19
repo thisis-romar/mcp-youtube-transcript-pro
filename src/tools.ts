@@ -120,6 +120,10 @@ export async function get_timed_transcript(input: ToolInput): Promise<Transcript
             }
         }
         
+        // Initialize return value
+        let returnValue: any = formattedContent;
+        let fileWriteMessage = '';
+        
         // Handle outputFile parameter
         if (input.outputFile !== undefined) {
             try {
@@ -146,8 +150,8 @@ export async function get_timed_transcript(input: ToolInput): Promise<Transcript
                 const stats = await fs.stat(resolvedPath);
                 const fileSizeKB = (stats.size / 1024).toFixed(2);
                 
-                // Return success message with metadata
-                return `✅ Transcript successfully written to file
+                // Store success message (may be combined with preview)
+                fileWriteMessage = `✅ Transcript successfully written to file
 
 File: ${resolvedPath}
 Format: ${format.toUpperCase()}
@@ -155,14 +159,84 @@ Size: ${fileSizeKB} KB
 Segments: ${segments.length}
 Duration: ${segments.length > 0 ? (segments[segments.length - 1].end / 60).toFixed(2) : 0} minutes`;
                 
+                returnValue = fileWriteMessage;
+                
             } catch (fileError) {
                 const err = fileError as Error;
                 throw new Error(`Failed to write output file: ${err.message}`);
             }
         }
         
-        // Return formatted content directly (default behavior)
-        return formattedContent;
+        // Handle preview parameter
+        if (input.preview !== undefined && input.preview !== false) {
+            // Determine truncation limit
+            const limit = typeof input.preview === 'number' ? input.preview : 5000;
+            
+            // Get content to preview (original formatted content, not file write message)
+            const contentToPreview = formattedContent;
+            
+            // Format-specific preview generation
+            if (format === 'json') {
+                // JSON format: create structured preview object
+                const segments = contentToPreview as TranscriptSegment[];
+                const fullJSON = JSON.stringify(segments);
+                
+                if (fullJSON.length > limit) {
+                    // Truncate segments array
+                    const truncatedSegments: TranscriptSegment[] = [];
+                    let charCount = 0;
+                    
+                    for (const segment of segments) {
+                        const segmentJSON = JSON.stringify(segment);
+                        if (charCount + segmentJSON.length > limit) break;
+                        truncatedSegments.push(segment);
+                        charCount += segmentJSON.length;
+                    }
+                    
+                    const previewObject = {
+                        preview: true,
+                        truncatedAt: limit,
+                        segmentsShown: truncatedSegments.length,
+                        totalSegments: segments.length,
+                        segmentsOmitted: segments.length - truncatedSegments.length,
+                        segments: truncatedSegments,
+                        message: `Preview truncated at ${limit.toLocaleString()} characters. ${(segments.length - truncatedSegments.length).toLocaleString()} segments omitted.`
+                    };
+                    
+                    // If file was written, combine messages
+                    if (fileWriteMessage) {
+                        returnValue = fileWriteMessage + '\n\n' + JSON.stringify(previewObject, null, 2);
+                    } else {
+                        returnValue = previewObject;
+                    }
+                } else {
+                    // Content is already under limit, no truncation needed
+                    returnValue = fileWriteMessage || segments;
+                }
+            } else {
+                // Text formats: simple string truncation
+                const textContent = contentToPreview as string;
+                
+                if (textContent.length > limit) {
+                    const truncated = textContent.substring(0, limit);
+                    const remaining = textContent.length - limit;
+                    const previewText = `${truncated}\n\n... [Preview truncated, ${remaining.toLocaleString()} more characters omitted] ...`;
+                    
+                    // If file was written, combine messages
+                    if (fileWriteMessage) {
+                        returnValue = fileWriteMessage + '\n\n--- CONTENT PREVIEW ---\n\n' + previewText;
+                    } else {
+                        returnValue = previewText;
+                    }
+                } else {
+                    // Content is already under limit, no truncation needed
+                    returnValue = fileWriteMessage || textContent;
+                }
+            }
+        }
+        
+        // Return final value (formatted content, file message, preview, or combination)
+        return returnValue;
     } catch (error) {
         const err = error as Error;
         throw new Error(`Failed to get transcript: ${err.message}`);

@@ -129,6 +129,52 @@ export interface ToolInput {
      * @default undefined (returns content directly)
      */
     outputFile?: string;
+    
+    /**
+     * Truncate response content to prevent conversation context overflow
+     * 
+     * When set, the tool truncates the returned content to the specified character
+     * limit. This allows viewing a preview of large transcripts without overwhelming
+     * the conversation context. Works independently or in combination with `outputFile`.
+     * 
+     * Behavior:
+     * - **boolean true**: Use default 5000 character limit
+     * - **number**: Custom character limit (minimum 1)
+     * - **false/undefined**: No truncation (returns full content)
+     * 
+     * Format-specific truncation:
+     * - **JSON format**: Returns structured preview object with metadata
+     *   - Includes truncated segments array
+     *   - Shows segmentsShown, totalSegments, segmentsOmitted counts
+     * - **Text formats** (SRT/VTT/CSV/TXT): Returns truncated string
+     *   - Appends message: "... [Preview truncated, N more characters omitted] ..."
+     * 
+     * Combined with outputFile:
+     * - Full content written to file
+     * - Truncated preview returned in conversation
+     * - Success message + preview both included in response
+     * 
+     * Use cases:
+     * - Preview large transcripts before deciding to save
+     * - Show first few minutes of long video transcripts
+     * - Reduce conversation context usage while maintaining visibility
+     * - Quick content verification without full download
+     * 
+     * @example
+     * ```typescript
+     * // Default 5000 character preview
+     * { url: 'video-id', format: 'srt', preview: true }
+     * 
+     * // Custom 1000 character preview
+     * { url: 'video-id', format: 'json', preview: 1000 }
+     * 
+     * // Combined: full file + preview in conversation
+     * { url: 'video-id', format: 'vtt', outputFile: './output.vtt', preview: true }
+     * ```
+     * 
+     * @default undefined (no truncation)
+     */
+    preview?: boolean | number;
 }
 
 export interface TranscriptSegment {

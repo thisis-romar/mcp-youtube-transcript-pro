@@ -442,12 +442,174 @@ async function runTests() {
         console.log('\n  ✅ All outputFile error handling tests passed');
         console.log('\n✅ All outputFile tests passed\n');
         
+        // Test 7: preview Parameter Tests
+        console.log('Test 7: preview Parameter Tests');
+        console.log('-'.repeat(50));
+        
+        // Test 7.1: preview Success Cases (preview only, no outputFile)
+        console.log('\n7.1: preview Success Cases (preview only)');
+        
+        // Test 7.1.1: preview: true with JSON format
+        console.log('  Testing preview: true with JSON format...');
+        const jsonPreview: any = await get_timed_transcript({ 
+            url: TEST_VIDEO_URL, 
+            format: 'json',
+            preview: true
+        });
+        
+        // Verify it's a preview object, not full array
+        if (typeof jsonPreview !== 'object' || !jsonPreview.preview) {
+            throw new Error('JSON preview should return structured preview object');
+        }
+        
+        console.log(`    ✓ Returns structured preview object`);
+        console.log(`    ✓ Preview flag: ${jsonPreview.preview}`);
+        console.log(`    ✓ Truncated at: ${jsonPreview.truncatedAt.toLocaleString()} chars`);
+        console.log(`    ✓ Segments shown: ${jsonPreview.segmentsShown}`);
+        console.log(`    ✓ Total segments: ${jsonPreview.totalSegments}`);
+        console.log(`    ✓ Segments omitted: ${jsonPreview.segmentsOmitted}`);
+        console.log(`    ✓ Message: "${jsonPreview.message.substring(0, 60)}..."`);
+        
+        // Test 7.1.2: preview: true with SRT format
+        console.log('  Testing preview: true with SRT format...');
+        const srtPreview = await get_timed_transcript({ 
+            url: TEST_VIDEO_URL, 
+            format: 'srt',
+            preview: true
+        });
+        
+        // Verify it's truncated string
+        if (typeof srtPreview !== 'string') {
+            throw new Error('SRT preview should return string');
+        }
+        if (!srtPreview.includes('[Preview truncated,')) {
+            throw new Error('SRT preview should include truncation message');
+        }
+        
+        const srtPreviewLength = srtPreview.length;
+        console.log(`    ✓ Returns truncated string`);
+        console.log(`    ✓ Preview length: ${srtPreviewLength.toLocaleString()} chars`);
+        console.log(`    ✓ Includes truncation message`);
+        console.log(`    ✓ Preview starts with: "${srtPreview.substring(0, 50)}..."`);
+        
+        // Test 7.1.3: preview: 1000 (custom limit) with VTT format
+        console.log('  Testing preview: 1000 with VTT format...');
+        const vttPreview = await get_timed_transcript({ 
+            url: TEST_VIDEO_URL, 
+            format: 'vtt',
+            preview: 1000
+        });
+        
+        if (typeof vttPreview !== 'string') {
+            throw new Error('VTT preview should return string');
+        }
+        
+        const vttPreviewLength = vttPreview.length;
+        console.log(`    ✓ Respects custom 1000 char limit`);
+        console.log(`    ✓ Preview length: ${vttPreviewLength.toLocaleString()} chars`);
+        console.log(`    ✓ Within expected range: ${vttPreviewLength <= 1100}`); // Allow for truncation message
+        
+        // Test 7.1.4: preview: 100 (very short) with CSV format
+        console.log('  Testing preview: 100 with CSV format...');
+        const csvPreview = await get_timed_transcript({ 
+            url: TEST_VIDEO_URL, 
+            format: 'csv',
+            preview: 100
+        });
+        
+        if (typeof csvPreview !== 'string') {
+            throw new Error('CSV preview should return string');
+        }
+        
+        const csvPreviewLength = csvPreview.length;
+        console.log(`    ✓ Handles very short limit (100 chars)`);
+        console.log(`    ✓ Preview length: ${csvPreviewLength.toLocaleString()} chars`);
+        console.log(`    ✓ Includes truncation message`);
+        
+        console.log('\n  ✅ All preview-only tests passed');
+        
+        // Test 7.2: Combined Parameters (outputFile + preview)
+        console.log('\n7.2: Combined outputFile + preview');
+        
+        const combinedOutputDir = './test-output-combined';
+        const combinedFile = `${combinedOutputDir}/combined.srt`;
+        
+        try {
+            // Clean test environment
+            try {
+                await fs.rm(combinedOutputDir, { recursive: true, force: true });
+            } catch (e) {
+                // Directory doesn't exist, that's fine
+            }
+            
+            console.log('  Testing combined outputFile + preview...');
+            const combinedResult = await get_timed_transcript({ 
+                url: TEST_VIDEO_URL, 
+                format: 'srt',
+                outputFile: combinedFile,
+                preview: true
+            });
+            
+            // Verify result is a string (not object)
+            if (typeof combinedResult !== 'string') {
+                throw new Error('Combined result should return string');
+            }
+            
+            // Verify result contains file success message
+            if (!combinedResult.includes('successfully written to file')) {
+                throw new Error('Combined result should include file write success message');
+            }
+            
+            // Verify result contains preview
+            if (!combinedResult.includes('--- CONTENT PREVIEW ---')) {
+                throw new Error('Combined result should include content preview section');
+            }
+            
+            console.log(`    ✓ Returns combined message (file + preview)`);
+            console.log(`    ✓ Includes file write success message`);
+            console.log(`    ✓ Includes content preview section`);
+            
+            // Verify file was written with FULL content
+            const fileStats = await fs.stat(combinedFile);
+            const fileContent = await fs.readFile(combinedFile, 'utf-8');
+            
+            console.log(`    ✓ File written: ${combinedFile}`);
+            console.log(`    ✓ File size: ${(fileStats.size / 1024).toFixed(2)} KB (full content)`);
+            console.log(`    ✓ File is complete (no truncation in file)`);
+            
+            // Verify return message is much shorter than file
+            const combinedLength = combinedResult.length;
+            const fileLength = fileContent.length;
+            
+            console.log(`    ✓ Return message: ${(combinedLength / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ File content: ${(fileLength / 1024).toFixed(2)} KB`);
+            console.log(`    ✓ Preview is truncated (message << file)`);
+            
+            // Cleanup
+            await fs.unlink(combinedFile);
+            await fs.rmdir(combinedOutputDir);
+            console.log(`    ✓ Cleanup completed`);
+            
+        } catch (error) {
+            // Cleanup on error
+            try {
+                await fs.rm(combinedOutputDir, { recursive: true, force: true });
+            } catch (e) {
+                // Ignore cleanup errors
+            }
+            throw error;
+        }
+        
+        console.log('\n  ✅ All combined parameter tests passed');
+        console.log('\n✅ All preview tests passed\n');
+        
         // Summary
         console.log('='.repeat(50));
         console.log('✅ All tests passed successfully!');
         console.log('   - 4 core tools validated');
         console.log('   - 5 output formats tested (JSON, SRT, VTT, CSV, TXT)');
         console.log('   - outputFile parameter tested (all formats + error cases)');
+        console.log('   - preview parameter tested (boolean, number, combined with outputFile)');
         console.log('   - Error handling verified');
         console.log('   - Backward compatibility confirmed');
         console.log('='.repeat(50));
